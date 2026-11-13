@@ -1,0 +1,12 @@
+# Editor settings (personal)
+.vscode/
+
+# Secrets and local config
+.env
+*.env
+
+# OS files
+.DS_Store
+Thumbs.dbcontext-*.txt
+
+context-*.txt

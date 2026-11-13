@@ -1,0 +1,21 @@
+{
+  "name": "Uninter Extensionista Dev Environment",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "features": {
+    "ghcr.io/devcontainers/features/node:2.1.1": {
+      "version": "20" 
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "vmware.vscode-spring-boot",
+        "Angular.ng-template"
+      ]
+    }
+  },
+  "remoteUser": "vscode"
+}

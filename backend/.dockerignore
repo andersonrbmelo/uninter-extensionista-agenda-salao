@@ -1,0 +1,13 @@
+target/
+.git/
+.gitignore
+.idea/
+.vscode/
+.devcontainer/
+.mvn/
+mvnw
+mvnw.cmd
+HELP.md
+README.md
+requests.http
+*.iml

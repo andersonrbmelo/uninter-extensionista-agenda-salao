@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  app:
+    image: mcr.microsoft.com/devcontainers/java:1-21-bookworm
+    volumes:
+      - ..:/workspace:cached
+    command: /bin/sh -c "while sleep 1000; do :; done"
+    network_mode: service:db
+
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_DB: salon_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: senha_secreta
+    ports:
+      - "5432:5432"

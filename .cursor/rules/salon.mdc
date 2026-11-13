@@ -1,0 +1,11 @@
+---
+description: Project rules for the salon booking system (Spring Boot backend)
+alwaysApply: true
+---
+
+- The project already exists. /backend is a blank Spring Boot project: do NOT recreate it and do NOT overwrite pom.xml or the main application class. Read pom.xml and the existing package structure first, then ADD the dependencies you need while keeping the existing Spring Boot version.
+- The base package is com.uninter.salon (groupId com.uninter, artifactId salon-api). The main application class already lives in this package. Put every module as a subpackage of it (com.uninter.salon.auth, com.uninter.salon.user, com.uninter.salon.salonservice, com.uninter.salon.schedule, com.uninter.salon.booking, com.uninter.salon.common) so Spring component scanning works. Do not create a different base package.
+- /frontend is a blank Angular project with Tailwind already configured. Do NOT touch /frontend for now. Work only inside /backend.
+- The full project plan is in backend/PLAN.md. Follow its phases in order and implement only one phase at a time. Stop at the end of each phase and tell me what to test.
+- Check the .devcontainer folder to see whether PostgreSQL is already configured there (host, port, username, password, database name) and use those values in application.properties.
+- All code, comments, commit messages, variable names, API messages and documentation must be written in English.

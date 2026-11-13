@@ -1,0 +1,398 @@
+@baseUrl = http://localhost:8080
+
+# Run the three logins first: tokens and ids are captured automatically.
+# Fresh database with SEED_DEMO_DATA=true. Service and option ids follow the seed order
+# (Corte=1 with option 1 "Padrão"); confirm them with "List active services" below.
+# Use a future open day (Monday to Saturday) for @startTime, and keep it free of bookings.
+@serviceId = 1
+@priceOptionId = 1
+@startTime = 2026-11-16T09:00:00
+@date = 2026-11-16
+
+###############################################################
+# AUTH
+###############################################################
+
+### Login as admin
+# @name loginAdmin
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@salon.com",
+  "password": "admin123"
+}
+
+###
+@adminToken = {{loginAdmin.response.body.token}}
+
+### Login as staff (Maria)
+# @name loginStaff
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "maria@salon.com",
+  "password": "staff123"
+}
+
+###
+@staffToken = {{loginStaff.response.body.token}}
+@staffId = {{loginStaff.response.body.user.id}}
+
+### Login as staff (João)
+# @name loginJoao
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "joao@salon.com",
+  "password": "staff123"
+}
+
+###
+@joaoId = {{loginJoao.response.body.user.id}}
+
+### Current user
+GET {{baseUrl}}/api/auth/me
+Authorization: Bearer {{adminToken}}
+
+### Register is disabled -> 403 "Registration is disabled"
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "New User",
+  "email": "newuser@example.com",
+  "password": "secret123"
+}
+
+### Customers cannot log in -> 401 "Invalid email or password" (any seeded customer with an e-mail has no password)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "customer@salon.com",
+  "password": "customer123"
+}
+
+###############################################################
+# SERVICES
+###############################################################
+
+### List active services (any authenticated user)
+GET {{baseUrl}}/api/services
+Authorization: Bearer {{staffToken}}
+
+### Get one service
+GET {{baseUrl}}/api/services/{{serviceId}}
+Authorization: Bearer {{staffToken}}
+
+### Create service (ADMIN)
+# @name createService
+POST {{baseUrl}}/api/services
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Manicure",
+  "description": "Nail care",
+  "active": true,
+  "priceOptions": [
+    { "label": "Standard", "price": 35.00, "durationMinutes": 45 }
+  ],
+  "staffIds": [{{staffId}}, {{joaoId}}]
+}
+
+###
+@newServiceId = {{createService.response.body.id}}
+
+### Update service (ADMIN) - send "id" to keep an existing price option
+PUT {{baseUrl}}/api/services/{{serviceId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Corte",
+  "description": "Corte e finalização",
+  "active": true,
+  "priceOptions": [
+    { "id": {{priceOptionId}}, "label": "Padrão", "price": 55.00, "durationMinutes": 30 }
+  ],
+  "staffIds": [{{staffId}}, {{joaoId}}]
+}
+
+### Soft delete the service created above (ADMIN)
+DELETE {{baseUrl}}/api/services/{{newServiceId}}
+Authorization: Bearer {{adminToken}}
+
+###############################################################
+# STAFF (ADMIN only)
+###############################################################
+
+### List active staff
+GET {{baseUrl}}/api/staff
+Authorization: Bearer {{adminToken}}
+
+### STAFF cannot manage staff -> 403
+GET {{baseUrl}}/api/staff
+Authorization: Bearer {{staffToken}}
+
+### Create a professional (run once; change the e-mail to run again)
+# @name createStaff
+POST {{baseUrl}}/api/staff
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Carla",
+  "email": "carla@salon.com",
+  "password": "carla123",
+  "phone": "(81) 98888-7777"
+}
+
+###
+@newStaffId = {{createStaff.response.body.id}}
+
+### Same e-mail again -> 409 "Email is already registered"
+POST {{baseUrl}}/api/staff
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Carla",
+  "email": "carla@salon.com",
+  "password": "carla123",
+  "phone": "81988887777"
+}
+
+### Invalid phone and short password -> 400
+POST {{baseUrl}}/api/staff
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Teste",
+  "email": "teste@salon.com",
+  "password": "123",
+  "phone": "123"
+}
+
+### Reset the password -> 204
+PATCH {{baseUrl}}/api/staff/{{newStaffId}}/password
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "password": "novaSenha123"
+}
+
+### The new password works -> 200
+# @name loginNewStaff
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "carla@salon.com",
+  "password": "novaSenha123"
+}
+
+###
+@newStaffToken = {{loginNewStaff.response.body.token}}
+
+### Deactivate -> 204 (409 "Staff member has future bookings" if she has future BOOKED appointments)
+PATCH {{baseUrl}}/api/staff/{{newStaffId}}/deactivate
+Authorization: Bearer {{adminToken}}
+
+### Her old token now fails -> 401
+GET {{baseUrl}}/api/auth/me
+Authorization: Bearer {{newStaffToken}}
+
+### And she no longer logs in -> 401
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "carla@salon.com",
+  "password": "novaSenha123"
+}
+
+###############################################################
+# CUSTOMERS (ADMIN and STAFF)
+###############################################################
+
+### List customers (paginated)
+GET {{baseUrl}}/api/customers?page=0&size=20
+Authorization: Bearer {{staffToken}}
+
+### Search by phone, any format: (81) 99999-0001 / +55 81 99999-0001 / 99990001
+# @name findCustomer
+GET {{baseUrl}}/api/customers?search=(81) 99999-0001
+Authorization: Bearer {{staffToken}}
+
+###
+@customerId = {{findCustomer.response.body.$.content[0].id}}
+
+### Search by name or e-mail (case-insensitive, accent-sensitive)
+GET {{baseUrl}}/api/customers?search=ana&page=0&size=20
+Authorization: Bearer {{adminToken}}
+
+### Customer details with booking history
+GET {{baseUrl}}/api/customers/{{customerId}}
+Authorization: Bearer {{staffToken}}
+
+### Create a customer (name + phone only) -> 201, phone stored as 81999998888
+POST {{baseUrl}}/api/customers
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "name": "Cliente Teste",
+  "phone": "+55 81 99999-8888"
+}
+
+### Create a customer with all fields (run once; change the e-mail to run again)
+POST {{baseUrl}}/api/customers
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Cliente Completa",
+  "phone": "(81) 3333-4444",
+  "email": "completa@example.com",
+  "allergies": "Latex",
+  "notes": "Prefere horários pela manhã"
+}
+
+### Invalid phone -> 400 "phone: Invalid phone number"
+POST {{baseUrl}}/api/customers
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "name": "Sem Telefone Valido",
+  "phone": "123"
+}
+
+### Missing phone -> 400 "phone: Phone is required"
+POST {{baseUrl}}/api/customers
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "name": "Sem Telefone"
+}
+
+###############################################################
+# SCHEDULE
+###############################################################
+
+### Working hours (any authenticated user)
+GET {{baseUrl}}/api/working-hours
+Authorization: Bearer {{staffToken}}
+
+### Update working hours (ADMIN) - exactly 7 items
+PUT {{baseUrl}}/api/working-hours
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+[
+  { "dayOfWeek": "MONDAY",    "open": true,  "openTime": "09:00", "closeTime": "18:00" },
+  { "dayOfWeek": "TUESDAY",   "open": true,  "openTime": "09:00", "closeTime": "18:00" },
+  { "dayOfWeek": "WEDNESDAY", "open": true,  "openTime": "09:00", "closeTime": "18:00" },
+  { "dayOfWeek": "THURSDAY",  "open": true,  "openTime": "09:00", "closeTime": "18:00" },
+  { "dayOfWeek": "FRIDAY",    "open": true,  "openTime": "09:00", "closeTime": "18:00" },
+  { "dayOfWeek": "SATURDAY",  "open": true,  "openTime": "09:00", "closeTime": "18:00" },
+  { "dayOfWeek": "SUNDAY",    "open": false }
+]
+
+### Available start times
+GET {{baseUrl}}/api/availability?serviceId={{serviceId}}&priceOptionId={{priceOptionId}}&staffId={{staffId}}&date={{date}}
+Authorization: Bearer {{staffToken}}
+
+###############################################################
+# BOOKINGS (ADMIN and STAFF)
+###############################################################
+
+### Maria books for a customer (herself as professional) -> 201, response has customerPhone
+# @name createBooking
+POST {{baseUrl}}/api/bookings
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "customerId": {{customerId}},
+  "serviceId": {{serviceId}},
+  "priceOptionId": {{priceOptionId}},
+  "staffId": {{staffId}},
+  "startTime": "{{startTime}}"
+}
+
+###
+@bookingId = {{createBooking.response.body.id}}
+
+### Second booking (used for the cancel example)
+# @name createSecondBooking
+POST {{baseUrl}}/api/bookings
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "customerId": {{customerId}},
+  "serviceId": {{serviceId}},
+  "priceOptionId": {{priceOptionId}},
+  "staffId": {{staffId}},
+  "startTime": "2026-11-16T14:00:00"
+}
+
+###
+@secondBookingId = {{createSecondBooking.response.body.id}}
+
+### Without customerId -> 400 "customerId: customerId is required"
+POST {{baseUrl}}/api/bookings
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "serviceId": {{serviceId}},
+  "priceOptionId": {{priceOptionId}},
+  "staffId": {{staffId}},
+  "startTime": "2026-11-16T15:00:00"
+}
+
+### Maria books João -> 403 "You can only create bookings for yourself"
+POST {{baseUrl}}/api/bookings
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "customerId": {{customerId}},
+  "serviceId": {{serviceId}},
+  "priceOptionId": {{priceOptionId}},
+  "staffId": {{joaoId}},
+  "startTime": "2026-11-16T10:00:00"
+}
+
+### A staff id as customerId -> 404 "Customer not found"
+POST {{baseUrl}}/api/bookings
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "customerId": {{staffId}},
+  "serviceId": {{serviceId}},
+  "priceOptionId": {{priceOptionId}},
+  "staffId": {{joaoId}},
+  "startTime": "2026-11-16T10:00:00"
+}
+
+### Admin books João -> 201
+# @name createJoaoBooking
+POST {{baseUrl}}/api/bookings
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "customerId": {{customerId}},
+  "serviceId": {{serviceId}},
+  "priceOptionId":

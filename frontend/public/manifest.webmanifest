@@ -1,0 +1,17 @@
+{
+    "name": "Salão",
+    "short_name": "Salão",
+    "start_url": "/",
+    "display": "standalone",
+    "lang": "pt-BR",
+    "background_color": "#f8fafc",
+    "theme_color": "#e11d48",
+    "icons": [
+      {
+        "src": "icon.svg",
+        "sizes": "any",
+        "type": "image/svg+xml",
+        "purpose": "any"
+      }
+    ]
+  }

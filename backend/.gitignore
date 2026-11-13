@@ -1,0 +1,21 @@
+# Build output
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+.factorypath
+
+# Secrets and local config
+.env
+*.env
+application-local.properties
+
+# Logs and OS files
+*.log
+.DS_Store
