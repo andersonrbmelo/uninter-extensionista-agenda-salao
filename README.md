@@ -1,3 +1,18 @@
+# Sistema de gestão de agenda para salão de beleza
+
+## Sobre o projeto
+
+Este sistema foi desenvolvido como atividade extensionista de Ciência da Computação (Uninter), para um pequeno salão de beleza.
+
+## O que o sistema faz
+
+- Agenda por dia e por semana, com filtro por profissional (a administradora vê todos; cada profissional vê só os seus).
+- Cadastro de clientes com busca por nome ou telefone, alergias e observações.
+- Novo agendamento para um cliente, com serviço, opção de preço, profissional, data e horário.
+- Cadastro de serviços, profissionais e horário de funcionamento (somente administradora).
+
+---
+
 # Salão: internal salon management system
 
 Mobile-first web app for the owner of a hair salon and her professionals: day/week agenda and customer registry,
